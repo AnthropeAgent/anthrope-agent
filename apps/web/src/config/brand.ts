@@ -5,7 +5,7 @@
 export const BRAND = {
   name: "Anthrope Agent",
   tagline: "Crypto intelligence for internet capital markets",
-  domain: "anthropeagent.xyz", // contoh; ganti dengan domain yang benar-benar kamu daftarkan
+  domain: "anthropeagent.com",
   products: {
     terminal: "Anthrope Terminal",
     data: "Anthrope Data",

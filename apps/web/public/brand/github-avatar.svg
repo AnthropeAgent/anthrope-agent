@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+<defs>
+  <linearGradient id="mk" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#fff6e3"/><stop offset="0.5" stop-color="#efe4d0"/><stop offset="1" stop-color="#d9b56f"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#d9b56f" stop-opacity="0.28"/><stop offset="1" stop-color="#d9b56f" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="abg" cx="0.5" cy="0.45" r="0.68">
+    <stop offset="0" stop-color="#30241a"/><stop offset="1" stop-color="#0f0c09"/>
+  </radialGradient></defs>
+<rect width="500" height="500" fill="url(#abg)"/>
+<circle cx="250" cy="250" r="215" fill="url(#glow)"/>
+<circle cx="250" cy="250" r="226" fill="none" stroke="#d9b56f" stroke-opacity="0.35" stroke-width="2"/>
+<g fill="url(#mk)"><polygon points="251.97,192.16 253.22,121.32 270.88,91.37 280.19,124.87 263.07,193.62"/><polygon points="280.62,200.89 305.40,159.40 327.92,148.45 323.17,173.04 289.51,207.71"/><polygon points="301.07,222.78 363.05,188.45 397.82,188.77 373.46,213.58 305.36,233.13"/><polygon points="307.84,251.97 356.16,252.68 376.90,266.71 353.23,274.89 306.38,263.07"/><polygon points="299.11,280.62 359.83,317.13 376.94,347.40 343.27,338.71 292.29,289.51"/><polygon points="277.22,301.07 300.76,343.28 298.98,368.26 280.06,351.85 266.87,305.36"/><polygon points="248.03,307.84 246.78,378.68 229.12,408.63 219.81,375.13 236.93,306.38"/><polygon points="219.38,299.11 194.60,340.60 172.08,351.55 176.83,326.96 210.49,292.29"/><polygon points="198.93,277.22 136.95,311.55 102.18,311.23 126.54,286.42 194.64,266.87"/><polygon points="192.16,248.03 143.84,247.32 123.10,233.29 146.77,225.11 193.62,236.93"/><polygon points="200.89,219.38 140.17,182.87 123.06,152.60 156.73,161.29 207.71,210.49"/><polygon points="222.78,198.93 199.24,156.72 201.02,131.74 219.94,148.15 233.13,194.64"/></g>
+  <circle cx="250" cy="250" r="40" fill="none" stroke="url(#mk)" stroke-width="8.8"/>
+  <path d="M250 230.8 L263.824 250 L250 269.2 L236.176 250Z" fill="url(#mk)"/>
+</svg>

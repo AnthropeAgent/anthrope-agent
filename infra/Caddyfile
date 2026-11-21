@@ -1,5 +1,5 @@
 # Reverse proxy produksi: SATU domain untuk semua produk.
-# Ganti {$APP_DOMAIN} lewat env, contoh: APP_DOMAIN=anthropeagent.xyz
+# Ganti {$APP_DOMAIN} lewat env, contoh: APP_DOMAIN=anthropeagent.com
 {$APP_DOMAIN} {
 	encode zstd gzip
 

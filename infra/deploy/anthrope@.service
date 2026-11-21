@@ -1,0 +1,24 @@
+# Satu unit template untuk tiga proses: anthrope@web, anthrope@api, anthrope@workers.
+# Dipasang ke /etc/systemd/system/ oleh setup-server.sh.
+[Unit]
+Description=Anthrope Agent %i
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=anthrope
+Group=anthrope
+WorkingDirectory=/opt/anthrope/app
+EnvironmentFile=/opt/anthrope/app/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm run start -w @ot/%i
+Restart=always
+RestartSec=5
+# Pengerasan dasar
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

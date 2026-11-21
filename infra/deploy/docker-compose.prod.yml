@@ -1,0 +1,30 @@
+# Database produksi di VPS yang sama. Port hanya dibuka ke 127.0.0.1 (tidak terlihat dari internet).
+# Password dibaca dari /opt/anthrope/db.env (dibuat setup-server.sh, tidak di-commit).
+name: anthrope
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    env_file: /opt/anthrope/db.env
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pg-data:
+  redis-data:
