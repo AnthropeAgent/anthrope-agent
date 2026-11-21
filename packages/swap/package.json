@@ -1,0 +1,22 @@
+{
+  "name": "@ot/swap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Swap non-custodial: quote & transaksi belum ditandatangani dari aggregator (Jupiter, KyberSwap), pemeriksaan transaksi, simulasi RPC, status.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ot/types": "*",
+    "@scure/base": "1.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "tsx": "4.19.2"
+  }
+}

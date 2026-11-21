@@ -1,0 +1,1543 @@
+openapi: 3.1.0
+info:
+  title: Platform API
+  version: 1.0.0-draft
+  description: |
+    REST API untuk Terminal, Peak, Research, dan Public Data API (Fase 2 design).
+    Semua endpoint ada di domain yang sama dengan web: `/api/v1`.
+
+    - Akses dari web memakai cookie sesi (`session`).
+    - Akses Public Data API memakai header `X-API-KEY` (dikenai kredit dan rate limit per tier).
+    - Angka USD dikirim sebagai number; jumlah token mentah (raw units) sebagai string desimal.
+    - Respons data pasar menyertakan `updatedAt` dan `stale`.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Market
+  - name: Trenches
+  - name: Wallets
+  - name: Perps
+  - name: Search
+  - name: Swap
+  - name: Auth
+  - name: User
+  - name: Content
+  - name: Peak
+  - name: Developer
+
+security:
+  - session: []
+  - apiKey: []
+
+paths:
+  # ------------------------------------------------------------------ MARKET
+  /tokens:
+    get:
+      tags: [Market]
+      summary: Daftar token untuk Discover (Top MC, Trending, RWAs, New)
+      security: [{}, {session: []}, {apiKey: []}]
+      parameters:
+        - { name: tab, in: query, schema: { type: string, enum: [top-mc, trending, rwas, new], default: trending } }
+        - { $ref: '#/components/parameters/ChainFilter' }
+        - { $ref: '#/components/parameters/Timeframe' }
+        - { name: minLiquidity, in: query, schema: { type: number } }
+        - { name: minMarketCap, in: query, schema: { type: number } }
+        - { name: minVolume, in: query, schema: { type: number } }
+        - { name: verifiedOnly, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, updatedAt]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Token' } }
+                  nextCursor: { type: [string, 'null'] }
+                  updatedAt: { type: string, format: date-time }
+
+  /tokens/{chain}/{address}:
+    get:
+      tags: [Market]
+      summary: Detail token (header, statistik, security ringkas)
+      security: [{}, {session: []}, {apiKey: []}]
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Token' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tokens/{chain}/{address}/ohlcv:
+    get:
+      tags: [Market]
+      summary: Candle OHLCV
+      description: |
+        Mode A (provider bridge): candle dari pool utama token (`Token.mainPool`) lewat GeckoTerminal,
+        maks 300 bar per interval. Interval 1s/5s butuh indexer sendiri → 400 INTERVAL_NOT_SUPPORTED.
+        Data diambil worker hanya untuk token yang sedang dibuka; request pertama bisa berisi
+        `items: []` dengan `pending: true` dan header `Retry-After`.
+      security: [{}, {session: []}, {apiKey: []}]
+      parameters:
+        - { $ref: '#/components/parameters/Chain' }
+        - { $ref: '#/components/parameters/Address' }
+        - { name: interval, in: query, required: true, schema: { type: string, enum: ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1d'] } }
+        - { name: from, in: query, schema: { type: integer, description: unix seconds } }
+        - { name: to, in: query, schema: { type: integer, description: unix seconds } }
+        - { name: unit, in: query, schema: { type: string, enum: [price, mcap], default: price } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Candle' } }
+                      interval: { type: string }
+                  - { $ref: '#/components/schemas/SeriesMeta' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: 'unit=mcap tapi market cap token belum diketahui (MCAP_UNAVAILABLE)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /tokens/{chain}/{address}/trades:
+    get:
+      tags: [Market]
+      summary: Transaksi terbaru token
+      description: Mode A — maks 300 transaksi terakhir (24 jam) di pool utama token, terbaru dulu. Pola `pending` sama dengan /ohlcv.
+      security: [{}, {session: []}, {apiKey: []}]
+      parameters:
+        - { $ref: '#/components/parameters/Chain' }
+        - { $ref: '#/components/parameters/Address' }
+        - { name: side, in: query, schema: { type: string, enum: [buy, sell] } }
+        - { name: minValueUsd, in: query, schema: { type: number } }
+        - { name: maker, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Trade' } }
+                      nextCursor: { type: [string, 'null'] }
+                  - { $ref: '#/components/schemas/SeriesMeta' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tokens/{chain}/{address}/holders:
+    get:
+      tags: [Market]
+      summary: Top 100 holder dan konsentrasi (langkah 7)
+      description: |
+        Request menandai token sebagai "dilihat"; worker memindai (GoPlus, fallback Solana RPC) bila snapshot > 5 menit.
+        Selama belum ada data → items kosong, pending true (coba lagi ±10 dtk). top10Pct tidak menghitung LP, burn, saldo terkunci.
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  holderCount: { type: [integer, 'null'] }
+                  top10Pct: { type: [number, 'null'] }
+                  items: { type: array, items: { $ref: '#/components/schemas/Holder' } }
+                  source: { type: [string, 'null'], enum: [goplus, solana-rpc, null] }
+                  updatedAt: { type: [string, 'null'], format: date-time }
+                  stale: { type: boolean }
+                  pending: { type: boolean }
+        '400': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /tokens/{chain}/{address}/security:
+    get:
+      tags: [Market]
+      summary: Hasil security scan (langkah 7)
+      description: |
+        {report, pending}. report = {score 0-100 | null, risk low|medium|high|unknown, checks [{key, label, status ok|warn|danger|unknown, value}],
+        flags, summary (bentuk Token.security), holderCount, top10Pct, creator, owner, source, scannedAt}. Bukan audit.
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /tokens/{chain}/{address}/markets:
+    get:
+      tags: [Market]
+      summary: Daftar pool tempat token diperdagangkan
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Pool' } }
+
+  /tokens/{chain}/{address}/dev-tokens:
+    get:
+      tags: [Market]
+      summary: Token lain yang dibuat oleh deployer yang sama
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  creator: { type: string }
+                  items: { type: array, items: { $ref: '#/components/schemas/Token' } }
+
+  # ---------------------------------------------------------------- TRENCHES
+  /trenches/{chain}:
+    get:
+      tags: [Trenches]
+      summary: Token launchpad per tahap (created, final_stretch, migrated)
+      parameters:
+        - { $ref: '#/components/parameters/Chain' }
+        - { name: launchpad, in: query, schema: { type: string } }
+        - { name: stage, in: query, schema: { type: string, enum: [created, final_stretch, migrated] } }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/TrenchToken' } }
+
+  # ----------------------------------------------------------------- WALLETS
+  /trenches/{chain}:
+    get:
+      tags: [Markets]
+      summary: Trenches pump.fun per tahap (langkah 9, hanya solana)
+      parameters: [{ name: chain, in: path, required: true, schema: { type: string, enum: [solana] } }]
+      responses: { '200': { description: '{items: TrenchToken[] (stage new|final|migrated, bondingPct), counts, updatedAt, pending, stale}' }, '404': { $ref: '#/components/responses/Error' } }
+  /perps:
+    get:
+      tags: [Markets]
+      summary: Perps Hyperliquid, pasar dan distribusi posisi (langkah 10)
+      responses: { '200': { description: '{perps: PerpsDoc | null, pending, stale}' } }
+  /status/data-sources:
+    get:
+      tags: [Markets]
+      summary: Mode data per chain (langkah 15)
+      responses: { '200': { description: '{chains: [{chain, mode, sources, indexer}], perps}' } }
+  /me/alerts:
+    get: { tags: [Account], summary: Daftar alert (login), responses: { '200': { description: '{items: AlertRule[], max}' }, '401': { $ref: '#/components/responses/Error' } } }
+    post: { tags: [Account], summary: 'Buat alert {kind, chain, address, threshold, cooldownSec?}', responses: { '201': { description: AlertRule }, '400': { $ref: '#/components/responses/Error' } } }
+  /me/alerts/{id}:
+    patch: { tags: [Account], summary: 'Aktif/nonaktif {active}', parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: OK } } }
+    delete: { tags: [Account], summary: Hapus alert, parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: OK } } }
+  /me/alerts/events:
+    get: { tags: [Account], summary: Notifikasi alert terbaru, parameters: [{ name: after, in: query, schema: { type: integer } }], responses: { '200': { description: '{items: AlertEvent[]}' } } }
+  /articles:
+    get: { tags: [CMS], summary: Artikel terbit, parameters: [{ name: category, in: query, schema: { type: string, enum: [blog, flagship-reports, insight-articles] } }], responses: { '200': { description: '{items: Article[]}' } } }
+  /articles/{slug}:
+    get: { tags: [CMS], summary: Artikel terbit dengan isi Markdown, parameters: [{ name: slug, in: path, required: true, schema: { type: string } }], responses: { '200': { description: Article }, '404': { $ref: '#/components/responses/Error' } } }
+  /admin/articles:
+    get: { tags: [CMS], summary: Semua artikel (admin), responses: { '200': { description: '{items}' }, '403': { $ref: '#/components/responses/Error' } } }
+    post: { tags: [CMS], summary: Buat artikel (admin), responses: { '201': { description: Artikel }, '409': { $ref: '#/components/responses/Error' } } }
+  /admin/articles/{id}:
+    put: { tags: [CMS], summary: Ubah artikel (admin), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Artikel } } }
+    delete: { tags: [CMS], summary: Hapus artikel (admin), parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: OK } } }
+  /me/api-keys:
+    get: { tags: [Data API], summary: Daftar API key + pemakaian bulan ini, responses: { '200': { description: '{items, max}' } } }
+    post: { tags: [Data API], summary: 'Buat API key {name}; key asli hanya dikembalikan sekali', responses: { '201': { description: '{key, info}' }, '409': { $ref: '#/components/responses/Error' } } }
+  /me/api-keys/{id}:
+    delete: { tags: [Data API], summary: Cabut API key, parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: OK } } }
+  /billing:
+    get: { tags: [Data API], summary: Paket & status billing (Stripe belum dikonfigurasi), responses: { '200': { description: '{configured, message, plans}' } } }
+
+  /traders:
+    get:
+      tags: [Wallets]
+      summary: Top traders global atau per token (langkah 8, dari transaksi terpantau)
+      description: |
+        PnL average cost dari deret trades yang dipantau worker (Mode A), bukan riwayat penuh wallet.
+        Dengan token=chain:address, request juga menandai token supaya deret trades-nya diambil.
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [all] } }
+        - { name: token, in: query, description: 'chain:address', schema: { type: string } }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/TraderRow' } }
+                  updatedAt: { type: [string, 'null'], format: date-time }
+                  tokens: { type: integer, description: jumlah token yang ikut dihitung }
+                  pending: { type: boolean }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /wallets/{address}:
+    get:
+      tags: [Wallets]
+      summary: Profil wallet (net worth, holdings, PnL terpantau, aktivitas) (langkah 8)
+      description: |
+        Alamat Solana (base58) atau EVM (0x…, dicek di Base & BNB Chain). Request menandai wallet sebagai dibuka;
+        worker mengisi profil dalam ±5–15 dtk dan me-refresh tiap 60 dtk selama dibuka. Sebelum itu → profile null, pending true.
+        profile = {address, kind, netWorthUsd, holdings[], pnl {realizedUsd, unrealizedUsd, totalUsd, winRate, tokensTraded, volumeUsd},
+        tokens[] (PnL per token), activity[] (trade terbaru), notes[] (keterbatasan data), updatedAt}.
+      parameters: [{ name: address, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: '{profile, pending, stale}' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  # ------------------------------------------------------------------- PERPS
+  /perps/distribution:
+    get:
+      tags: [Perps]
+      summary: Distribusi posisi perps per PnL, equity, winrate
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pnl: { type: array, items: { $ref: '#/components/schemas/PerpsBucket' } }
+                  equity: { type: array, items: { $ref: '#/components/schemas/PerpsBucket' } }
+                  winrate: { type: array, items: { $ref: '#/components/schemas/PerpsBucket' } }
+                  updatedAt: { type: string, format: date-time }
+
+  /perps/heatmap:
+    get:
+      tags: [Perps]
+      parameters:
+        - { name: x, in: query, schema: { type: string, enum: [equity, winrate, pnl, asset, oi], default: equity } }
+        - { name: y, in: query, schema: { type: string, enum: [equity, winrate, pnl, asset, oi], default: winrate } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cells: { type: array, items: { type: object, properties: { x: { type: string }, y: { type: string }, longUsd: { type: number }, shortUsd: { type: number } } } }
+
+  # ------------------------------------------------------------------ SEARCH
+  /search:
+    get:
+      tags: [Search]
+      summary: Cari token berdasarkan simbol, nama (fuzzy), atau alamat
+      description: |
+        Teks: kandidat dari Meilisearch (atau fallback Postgres pg_trgm), diurutkan alamat persis > simbol persis >
+        awalan simbol > nama > mengandung > fuzzy, lalu likuiditas, lalu volume 24h.
+        Alamat (0x… / base58) dicari langsung di cache; bila belum ada, worker diminta mengambilnya dan alamat
+        dikembalikan di `pending` (cari ulang beberapa detik lagi).
+      security: [{}]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 100 } }
+        - { name: chain, in: query, schema: { type: string, description: "chain id atau all" } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokens, wallets, pending]
+                properties:
+                  tokens: { type: array, items: { $ref: '#/components/schemas/Token' } }
+                  wallets: { type: array, description: "Belum diisi (index wallets di langkah 8)", items: { type: object, properties: { address: { type: string }, label: { type: string } } } }
+                  pending:
+                    type: array
+                    description: Alamat valid yang belum di-cache dan sedang diambil worker
+                    items: { type: object, properties: { chain: { type: string }, address: { type: string } } }
+        '400': { $ref: '#/components/responses/Error' }
+
+  # -------------------------------------------------------------------- SWAP
+  /swap/quote:
+    post:
+      tags: [Swap]
+      summary: Quote Buy (native → token) / Sell (token → native) dari Jupiter (Solana) atau KyberSwap (Base, BNB Chain)
+      security: [{}, {session: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chain, side, token, amount]
+              properties:
+                chain: { type: string, enum: [solana, base, bsc] }
+                side: { type: string, enum: [buy, sell] }
+                token: { type: string }
+                amount: { type: string, description: 'jumlah yang dibayar dalam satuan biasa, mis. "0.5"' }
+                slippageBps: { type: integer, minimum: 1, maximum: 5000, default: 100 }
+      responses:
+        '200':
+          description: Quote berlaku 30 detik
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quoteId: { type: string }
+                  aggregator: { type: string, enum: [jupiter, kyberswap] }
+                  inputToken: { type: string }
+                  outputToken: { type: string }
+                  amountIn: { type: string, description: raw units }
+                  amountOut: { type: string }
+                  minAmountOut: { type: string }
+                  amountOutFormatted: { type: string }
+                  minAmountOutFormatted: { type: string }
+                  priceImpactPct: { type: number }
+                  route: { type: array, items: { type: string } }
+                  feeBps: { type: integer }
+                  expiresAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /swap/build:
+    post:
+      tags: [Swap]
+      summary: Bangun transaksi belum ditandatangani + pemeriksaan + simulasi wajib
+      description: |
+        Server tidak pernah menandatangani atau mengirim. Transaksi diperiksa (Solana: fee payer = wallet,
+        hanya program allowlist; EVM: router resmi KyberSwap, value sesuai) lalu disimulasikan.
+        Saldo kurang / simulasi gagal → 422, transaksi tidak dikembalikan.
+        EVM token ERC-20 dengan allowance kurang → needsApproval + approvalTx (sejumlah swap, bukan unlimited).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quoteId, wallet]
+              properties:
+                quoteId: { type: string }
+                wallet: { type: string }
+                priorityFee: { type: string, enum: [auto, low, medium, high], default: auto }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  needsApproval: { type: boolean }
+                  approvalTx: { type: object, description: 'EVM {chainId, from, to, data, value}' }
+                  orderId: { type: [string, 'null'], format: uuid }
+                  kind: { type: string, enum: [solana, evm] }
+                  unsignedTx: { description: 'base64 (Solana) atau objek tx EVM {chainId, from, to, data, value, gas}' }
+                  simulation: { type: object, properties: { ok: { type: boolean }, expectedOut: { type: string }, minAmountOut: { type: string }, logs: { type: array, items: { type: string } } } }
+        '410': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /swap/track:
+    post:
+      tags: [Swap]
+      summary: Catat signature/hash transaksi yang sudah dikirim wallet user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, txSignature]
+              properties:
+                orderId: { type: string, format: uuid }
+                txSignature: { type: string }
+      responses:
+        '204': { description: Dicatat; worker memperbarui status }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /swap/orders/{id}:
+    get:
+      tags: [Swap]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: 'Order {status: built|submitted|confirmed|failed, txSignature, explorerUrl, ...}' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /swap/balance:
+    get:
+      tags: [Swap]
+      parameters:
+        - { name: chain, in: query, required: true, schema: { type: string, enum: [solana, base, bsc] } }
+        - { name: wallet, in: query, required: true, schema: { type: string } }
+        - { name: token, in: query, schema: { type: string } }
+      responses:
+        '200': { description: 'Saldo native & token {raw, decimals, formatted}' }
+
+  /me/swaps:
+    get:
+      tags: [Swap, User]
+      responses:
+        '200': { description: Riwayat swap user yang login (50 terakhir) }
+        '401': { $ref: '#/components/responses/Error' }
+
+  # -------------------------------------------------------------------- AUTH
+  /auth/nonce:
+    post:
+      tags: [Auth]
+      security: [{}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [address, chainKind], properties: { address: { type: string }, chainKind: { type: string, enum: [solana, evm] }, chainId: { type: integer, description: "EVM chain ID dari wallet (opsional, default 1)" } } }
+      responses:
+        '200':
+          description: Pesan SIWS/SIWE untuk ditandatangani
+          content:
+            application/json:
+              schema: { type: object, properties: { message: { type: string }, nonce: { type: string }, expiresAt: { type: string, format: date-time } } }
+
+  /auth/verify:
+    post:
+      tags: [Auth]
+      security: [{}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [message, signature], properties: { message: { type: string }, signature: { type: string } } }
+      responses:
+        '200': { description: Login berhasil, cookie sesi di-set, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /auth/email:
+    post:
+      tags: [Auth]
+      security: [{}]
+      summary: Kirim magic link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [email], properties: { email: { type: string, format: email } } }
+      responses:
+        '204': { description: Terkirim (respons sama walau email tidak terdaftar) }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      responses:
+        '204': { description: Sesi dihapus }
+
+  # -------------------------------------------------------------------- USER
+  /me:
+    get:
+      tags: [User]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [User]
+      summary: Ubah preferensi (kolom tabel, layout token, preset swap)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                displayName: { type: [string, 'null'], maxLength: 32 }
+                preferences:
+                  type: object
+                  additionalProperties: false
+                  description: Digabung (merge) dengan preferensi yang ada
+                  properties:
+                    discoverColumns: { type: array, maxItems: 40, items: { type: string, pattern: '^[a-zA-Z0-9_-]{1,32}
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+
+  /me/watchlist:
+    get:
+      tags: [User]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/WatchlistItem' } } } }
+    post:
+      tags: [User]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/WatchlistItem' } } }
+      responses:
+        '201': { description: Ditambahkan (idempoten) }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /me/watchlist/{kind}/{chain}/{address}:
+    delete:
+      tags: [User]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [token, wallet] } }
+        - { $ref: '#/components/parameters/Chain' }
+        - { $ref: '#/components/parameters/Address' }
+      responses:
+        '204': { description: Dihapus }
+
+  /me/alerts:
+    get:
+      tags: [User]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/AlertRule' } } } }
+    post:
+      tags: [User]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AlertRule' } } }
+      responses:
+        '201': { description: Dibuat }
+        '402': { description: Batas jumlah alert untuk tier tercapai }
+
+  /me/alerts/{id}:
+    delete:
+      tags: [User]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '204': { description: Dihapus }
+
+  # ----------------------------------------------------------------- CONTENT
+  /articles:
+    get:
+      tags: [Content]
+      security: [{}]
+      parameters:
+        - { name: category, in: query, schema: { type: string, enum: [blog, flagship-reports, insight-articles] } }
+        - { name: featured, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Article' } }, nextCursor: { type: [string, 'null'] } } }
+
+  /articles/{slug}:
+    get:
+      tags: [Content]
+      security: [{}]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Article' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leads:
+    post:
+      tags: [Content]
+      security: [{}]
+      summary: Form contact sales / commission report / careers / peak demo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, fullName, email, turnstileToken]
+              properties:
+                kind: { type: string, enum: [contact_sales, commission_report, careers, peak_demo] }
+                fullName: { type: string, maxLength: 120 }
+                email: { type: string, format: email }
+                jobTitle: { type: string }
+                company: { type: string }
+                companyType: { type: string }
+                website: { type: string, format: uri }
+                message: { type: string, maxLength: 4000 }
+                turnstileToken: { type: string }
+      responses:
+        '201': { description: Diterima }
+        '429': { $ref: '#/components/responses/Error' }
+
+  # -------------------------------------------------------------------- PEAK
+  /peak/assets/{chain}/{address}/fundamentals:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      description: Membutuhkan role `peak`.
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200':
+          description: Supply, unlock, alokasi, valuasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supply: { type: object }
+                  unlocks: { type: array, items: { type: object, properties: { unlockAt: { type: string, format: date-time }, amount: { type: string }, category: { type: string } } } }
+                  allocations: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /peak/indices:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      responses:
+        '200': { description: Daftar indeks dan nilainya }
+
+  /peak/news:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      parameters:
+        - { name: entity, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200': { description: Feed berita kurasi }
+
+  /peak/deals:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      responses:
+        '200': { description: Daftar deal yang terlihat oleh user }
+
+  /peak/deals/{id}/access:
+    post:
+      tags: [Peak]
+      security: [{session: []}]
+      summary: Minta akses data room
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '202': { description: Permintaan tercatat }
+
+  /peak/ai/chat:
+    post:
+      tags: [Peak]
+      security: [{session: []}]
+      summary: Peak AI (streaming SSE). Model memanggil endpoint internal sebagai tools.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [messages], properties: { messages: { type: array, items: { type: object, properties: { role: { type: string, enum: [user, assistant] }, content: { type: string } } } } } }
+      responses:
+        '200': { description: text/event-stream }
+
+  # --------------------------------------------------------------- DEVELOPER
+  /developer/keys:
+    get:
+      tags: [Developer]
+      security: [{session: []}]
+      responses:
+        '200':
+          description: Daftar API key (hanya prefix, bukan key asli)
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/ApiKey' } } } }
+    post:
+      tags: [Developer]
+      security: [{session: []}]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 60 } } } } }
+      responses:
+        '201':
+          description: Key baru. Field `key` hanya dikirim sekali ini.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/ApiKey' }
+                  - { type: object, properties: { key: { type: string } } }
+
+  /developer/keys/{id}:
+    delete:
+      tags: [Developer]
+      security: [{session: []}]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '204': { description: Key dicabut }
+
+  /developer/usage:
+    get:
+      tags: [Developer]
+      security: [{session: []}]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Pemakaian kredit harian per endpoint }
+
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: session }
+    apiKey: { type: apiKey, in: header, name: X-API-KEY }
+
+  parameters:
+    Chain: { name: chain, in: path, required: true, schema: { type: string, example: solana } }
+    Address: { name: address, in: path, required: true, schema: { type: string } }
+    ChainFilter: { name: chain, in: query, schema: { type: string, default: all } }
+    Timeframe: { name: tf, in: query, schema: { type: string, enum: ['5m', '1h', '4h', '24h'], default: '24h' } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+
+  responses:
+    NotFound:
+      description: Tidak ditemukan
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: TOKEN_NOT_FOUND }
+            message: { type: string }
+
+    PctChange:
+      type: object
+      properties:
+        '5m': { type: [number, 'null'] }
+        '1h': { type: [number, 'null'] }
+        '4h': { type: [number, 'null'] }
+        '24h': { type: [number, 'null'] }
+
+    Token:
+      description: Bentuk sama dengan `Token` di src/lib/data/types.ts.
+      type: object
+      required: [chain, address, symbol, name, price, marketCap, liquidity, updatedAt, stale]
+      properties:
+        chain: { type: string }
+        address: { type: string }
+        symbol: { type: string }
+        name: { type: string }
+        logoUrl: { type: [string, 'null'] }
+        ageMinutes: { type: number }
+        price: { type: number }
+        priceNative: { type: number }
+        marketCap: { type: number }
+        fdv: { type: number }
+        liquidity: { type: number }
+        volume24h: { type: number }
+        buyVolume24h: { type: [number, "null"], description: "null jika sumber data tidak memisahkan volume beli/jual (Mode A gratis)" }
+        sellVolume24h: { type: [number, "null"] }
+        txns24h: { type: integer }
+        buys24h: { type: integer }
+        sells24h: { type: integer }
+        traders24h: { type: [integer, "null"] }
+        change: { $ref: '#/components/schemas/PctChange' }
+        holders: { type: [integer, 'null'] }
+        top10Pct: { type: [number, 'null'] }
+        maxSupply: { type: number }
+        circulating: { type: number }
+        markets: { type: [integer, "null"], description: "Jumlah pool aktif; null jika sumber tidak memberi jumlahnya" }
+        verified: { type: boolean }
+        isRwa: { type: boolean }
+        launchpad: { type: [string, 'null'] }
+        socials: { type: object, properties: { website: { type: string, format: uri }, x: { type: string, format: uri }, telegram: { type: string, format: uri } } }
+        source: { type: string, description: "Asal data, misal dexscreener+geckoterminal" }
+        mainPool: { type: [string, 'null'], description: Pool terlikuid; sumber chart & trades di Mode A }
+        security: { $ref: '#/components/schemas/SecuritySummary' }
+        updatedAt: { type: string, format: date-time }
+        stale: { type: boolean }
+
+    SecuritySummary:
+      type: object
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        mintRevoked: { type: [boolean, 'null'] }
+        freezeRevoked: { type: [boolean, 'null'] }
+        lpBurnedPct: { type: [number, 'null'] }
+        honeypot: { type: [boolean, 'null'] }
+        buyTax: { type: [number, 'null'] }
+        sellTax: { type: [number, 'null'] }
+
+    Security:
+      allOf:
+        - { $ref: '#/components/schemas/SecuritySummary' }
+        - type: object
+          properties:
+            devHoldingPct: { type: [number, 'null'] }
+            flags: { type: array, items: { type: string } }
+            scannedAt: { type: string, format: date-time }
+
+    TrenchToken:
+      allOf:
+        - { $ref: '#/components/schemas/Token' }
+        - type: object
+          properties:
+            stage: { type: string, enum: [created, final_stretch, migrated] }
+            bondingPct: { type: number }
+
+    SeriesMeta:
+      type: object
+      required: [updatedAt, stale, pending, pool]
+      properties:
+        updatedAt: { type: [string, 'null'], format: date-time }
+        stale: { type: boolean, description: 'true jika data > 10 menit atau belum ada' }
+        pending: { type: boolean, description: 'true jika data belum pernah diambil; coba lagi sesuai Retry-After' }
+        pool: { type: [string, 'null'], description: Pool asal data }
+
+    Candle:
+      type: object
+      required: [time, open, high, low, close, volume]
+      properties:
+        time: { type: integer, description: unix seconds (awal bar) }
+        open: { type: number }
+        high: { type: number }
+        low: { type: number }
+        close: { type: number }
+        volume: { type: number }
+
+    Trade:
+      type: object
+      properties:
+        id: { type: string, description: 'chain:txHash:evIndex' }
+        time: { type: integer }
+        side: { type: string, enum: [buy, sell] }
+        priceUsd: { type: number }
+        amountToken: { type: number }
+        valueUsd: { type: number }
+        maker: { type: string }
+        txHash: { type: string }
+        token: { type: string }
+        final: { type: boolean }
+
+    Holder:
+      type: object
+      properties:
+        rank: { type: integer }
+        address: { type: string }
+        label: { type: [string, 'null'] }
+        pct: { type: number }
+        amount: { type: number }
+        valueUsd: { type: number }
+
+    Pool:
+      type: object
+      properties:
+        address: { type: string }
+        dex: { type: string }
+        quoteToken: { type: string }
+        liquidityUsd: { type: number }
+        volume24h: { type: number }
+        isPrimary: { type: boolean }
+
+    TraderRow:
+      type: object
+      properties:
+        rank: { type: integer }
+        address: { type: string }
+        label: { type: [string, 'null'] }
+        pnlUsd: { type: number }
+        roiPct: { type: number }
+        winRate: { type: number }
+        volumeUsd: { type: number }
+        trades: { type: integer }
+        lastActiveMin: { type: number }
+
+    WalletSummary:
+      type: object
+      properties:
+        address: { type: string }
+        labels: { type: array, items: { type: string } }
+        netWorthUsd: { type: number }
+        realizedPnlUsd: { type: number }
+        unrealizedPnlUsd: { type: number }
+        winRate: { type: number }
+        trades30d: { type: integer }
+
+    Position:
+      type: object
+      properties:
+        chain: { type: string }
+        token: { type: string }
+        symbol: { type: string }
+        balance: { type: number }
+        valueUsd: { type: number }
+        avgCostUsd: { type: number }
+        realizedPnlUsd: { type: number }
+        unrealizedPnlUsd: { type: number }
+
+    PerpsBucket:
+      type: object
+      properties:
+        range: { type: string }
+        group: { type: string }
+        wallets: { type: integer }
+        inPositions: { type: integer }
+        long: { type: number }
+        short: { type: number }
+        itm: { type: number }
+        underwater: { type: number }
+        leverage: { type: number }
+
+    Article:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        excerpt: { type: string }
+        bodyMd: { type: string, description: Hanya di endpoint detail }
+        category: { type: string, enum: [blog, flagship-reports, insight-articles] }
+        tags: { type: array, items: { type: string } }
+        coverUrl: { type: [string, 'null'] }
+        pdfUrl: { type: [string, 'null'] }
+        date: { type: string, format: date }
+        readMin: { type: integer }
+        featured: { type: boolean }
+
+    Me:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: [string, 'null'] }
+        email: { type: [string, 'null'] }
+        role: { type: string, enum: [user, pro, peak, admin] }
+        wallets: { type: array, items: { type: object, properties: { chainKind: { type: string }, address: { type: string } } } }
+        preferences: { type: object }
+
+    WatchlistItem:
+      type: object
+      required: [kind, chain, address]
+      properties:
+        kind: { type: string, enum: [token, wallet] }
+        chain: { type: string }
+        address: { type: string }
+        note: { type: string }
+
+    AlertRule:
+      type: object
+      required: [kind, chain, target, params]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        kind: { type: string, enum: [price_above, price_below, pct_change, volume_spike, wallet_activity, new_listing] }
+        chain: { type: string }
+        target: { type: string }
+        params: { type: object }
+        channels: { type: array, items: { type: string, enum: [web, telegram, email] } }
+        cooldownSec: { type: integer, minimum: 60 }
+        active: { type: boolean }
+
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        prefix: { type: string }
+        plan: { type: string }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: [string, 'null'], format: date-time }
+ } }
+                    chartInterval: { type: string, enum: ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1d'] }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+
+  /me/watchlist:
+    get:
+      tags: [User]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/WatchlistItem' } } } }
+    post:
+      tags: [User]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/WatchlistItem' } } }
+      responses:
+        '201': { description: Ditambahkan }
+
+  /me/watchlist/{kind}/{chain}/{address}:
+    delete:
+      tags: [User]
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [token, wallet] } }
+        - { $ref: '#/components/parameters/Chain' }
+        - { $ref: '#/components/parameters/Address' }
+      responses:
+        '204': { description: Dihapus }
+
+  /me/alerts:
+    get:
+      tags: [User]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/AlertRule' } } } }
+    post:
+      tags: [User]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AlertRule' } } }
+      responses:
+        '201': { description: Dibuat }
+        '402': { description: Batas jumlah alert untuk tier tercapai }
+
+  /me/alerts/{id}:
+    delete:
+      tags: [User]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '204': { description: Dihapus }
+
+  # ----------------------------------------------------------------- CONTENT
+  /articles:
+    get:
+      tags: [Content]
+      security: [{}]
+      parameters:
+        - { name: category, in: query, schema: { type: string, enum: [blog, flagship-reports, insight-articles] } }
+        - { name: featured, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Article' } }, nextCursor: { type: [string, 'null'] } } }
+
+  /articles/{slug}:
+    get:
+      tags: [Content]
+      security: [{}]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Article' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leads:
+    post:
+      tags: [Content]
+      security: [{}]
+      summary: Form contact sales / commission report / careers / peak demo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, fullName, email, turnstileToken]
+              properties:
+                kind: { type: string, enum: [contact_sales, commission_report, careers, peak_demo] }
+                fullName: { type: string, maxLength: 120 }
+                email: { type: string, format: email }
+                jobTitle: { type: string }
+                company: { type: string }
+                companyType: { type: string }
+                website: { type: string, format: uri }
+                message: { type: string, maxLength: 4000 }
+                turnstileToken: { type: string }
+      responses:
+        '201': { description: Diterima }
+        '429': { $ref: '#/components/responses/Error' }
+
+  # -------------------------------------------------------------------- PEAK
+  /peak/assets/{chain}/{address}/fundamentals:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      description: Membutuhkan role `peak`.
+      parameters: [{ $ref: '#/components/parameters/Chain' }, { $ref: '#/components/parameters/Address' }]
+      responses:
+        '200':
+          description: Supply, unlock, alokasi, valuasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supply: { type: object }
+                  unlocks: { type: array, items: { type: object, properties: { unlockAt: { type: string, format: date-time }, amount: { type: string }, category: { type: string } } } }
+                  allocations: { type: array, items: { type: object } }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /peak/indices:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      responses:
+        '200': { description: Daftar indeks dan nilainya }
+
+  /peak/news:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      parameters:
+        - { name: entity, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200': { description: Feed berita kurasi }
+
+  /peak/deals:
+    get:
+      tags: [Peak]
+      security: [{session: []}]
+      responses:
+        '200': { description: Daftar deal yang terlihat oleh user }
+
+  /peak/deals/{id}/access:
+    post:
+      tags: [Peak]
+      security: [{session: []}]
+      summary: Minta akses data room
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '202': { description: Permintaan tercatat }
+
+  /peak/ai/chat:
+    post:
+      tags: [Peak]
+      security: [{session: []}]
+      summary: Peak AI (streaming SSE). Model memanggil endpoint internal sebagai tools.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [messages], properties: { messages: { type: array, items: { type: object, properties: { role: { type: string, enum: [user, assistant] }, content: { type: string } } } } } }
+      responses:
+        '200': { description: text/event-stream }
+
+  # --------------------------------------------------------------- DEVELOPER
+  /developer/keys:
+    get:
+      tags: [Developer]
+      security: [{session: []}]
+      responses:
+        '200':
+          description: Daftar API key (hanya prefix, bukan key asli)
+          content:
+            application/json:
+              schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/ApiKey' } } } }
+    post:
+      tags: [Developer]
+      security: [{session: []}]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 60 } } } } }
+      responses:
+        '201':
+          description: Key baru. Field `key` hanya dikirim sekali ini.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/ApiKey' }
+                  - { type: object, properties: { key: { type: string } } }
+
+  /developer/keys/{id}:
+    delete:
+      tags: [Developer]
+      security: [{session: []}]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '204': { description: Key dicabut }
+
+  /developer/usage:
+    get:
+      tags: [Developer]
+      security: [{session: []}]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Pemakaian kredit harian per endpoint }
+
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: session }
+    apiKey: { type: apiKey, in: header, name: X-API-KEY }
+
+  parameters:
+    Chain: { name: chain, in: path, required: true, schema: { type: string, example: solana } }
+    Address: { name: address, in: path, required: true, schema: { type: string } }
+    ChainFilter: { name: chain, in: query, schema: { type: string, default: all } }
+    Timeframe: { name: tf, in: query, schema: { type: string, enum: ['5m', '1h', '4h', '24h'], default: '24h' } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+
+  responses:
+    NotFound:
+      description: Tidak ditemukan
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: TOKEN_NOT_FOUND }
+            message: { type: string }
+
+    PctChange:
+      type: object
+      properties:
+        '5m': { type: [number, 'null'] }
+        '1h': { type: [number, 'null'] }
+        '4h': { type: [number, 'null'] }
+        '24h': { type: [number, 'null'] }
+
+    Token:
+      description: Bentuk sama dengan `Token` di src/lib/data/types.ts.
+      type: object
+      required: [chain, address, symbol, name, price, marketCap, liquidity, updatedAt, stale]
+      properties:
+        chain: { type: string }
+        address: { type: string }
+        symbol: { type: string }
+        name: { type: string }
+        logoUrl: { type: [string, 'null'] }
+        ageMinutes: { type: number }
+        price: { type: number }
+        priceNative: { type: number }
+        marketCap: { type: number }
+        fdv: { type: number }
+        liquidity: { type: number }
+        volume24h: { type: number }
+        buyVolume24h: { type: [number, "null"], description: "null jika sumber data tidak memisahkan volume beli/jual (Mode A gratis)" }
+        sellVolume24h: { type: [number, "null"] }
+        txns24h: { type: integer }
+        buys24h: { type: integer }
+        sells24h: { type: integer }
+        traders24h: { type: [integer, "null"] }
+        change: { $ref: '#/components/schemas/PctChange' }
+        holders: { type: [integer, 'null'] }
+        top10Pct: { type: [number, 'null'] }
+        maxSupply: { type: number }
+        circulating: { type: number }
+        markets: { type: [integer, "null"], description: "Jumlah pool aktif; null jika sumber tidak memberi jumlahnya" }
+        verified: { type: boolean }
+        isRwa: { type: boolean }
+        launchpad: { type: [string, 'null'] }
+        socials: { type: object, properties: { website: { type: string, format: uri }, x: { type: string, format: uri }, telegram: { type: string, format: uri } } }
+        source: { type: string, description: "Asal data, misal dexscreener+geckoterminal" }
+        mainPool: { type: [string, 'null'], description: Pool terlikuid; sumber chart & trades di Mode A }
+        security: { $ref: '#/components/schemas/SecuritySummary' }
+        updatedAt: { type: string, format: date-time }
+        stale: { type: boolean }
+
+    SecuritySummary:
+      type: object
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        mintRevoked: { type: [boolean, 'null'] }
+        freezeRevoked: { type: [boolean, 'null'] }
+        lpBurnedPct: { type: [number, 'null'] }
+        honeypot: { type: [boolean, 'null'] }
+        buyTax: { type: [number, 'null'] }
+        sellTax: { type: [number, 'null'] }
+
+    Security:
+      allOf:
+        - { $ref: '#/components/schemas/SecuritySummary' }
+        - type: object
+          properties:
+            devHoldingPct: { type: [number, 'null'] }
+            flags: { type: array, items: { type: string } }
+            scannedAt: { type: string, format: date-time }
+
+    TrenchToken:
+      allOf:
+        - { $ref: '#/components/schemas/Token' }
+        - type: object
+          properties:
+            stage: { type: string, enum: [created, final_stretch, migrated] }
+            bondingPct: { type: number }
+
+    SeriesMeta:
+      type: object
+      required: [updatedAt, stale, pending, pool]
+      properties:
+        updatedAt: { type: [string, 'null'], format: date-time }
+        stale: { type: boolean, description: 'true jika data > 10 menit atau belum ada' }
+        pending: { type: boolean, description: 'true jika data belum pernah diambil; coba lagi sesuai Retry-After' }
+        pool: { type: [string, 'null'], description: Pool asal data }
+
+    Candle:
+      type: object
+      required: [time, open, high, low, close, volume]
+      properties:
+        time: { type: integer, description: unix seconds (awal bar) }
+        open: { type: number }
+        high: { type: number }
+        low: { type: number }
+        close: { type: number }
+        volume: { type: number }
+
+    Trade:
+      type: object
+      properties:
+        id: { type: string, description: 'chain:txHash:evIndex' }
+        time: { type: integer }
+        side: { type: string, enum: [buy, sell] }
+        priceUsd: { type: number }
+        amountToken: { type: number }
+        valueUsd: { type: number }
+        maker: { type: string }
+        txHash: { type: string }
+        token: { type: string }
+        final: { type: boolean }
+
+    Holder:
+      type: object
+      properties:
+        rank: { type: integer }
+        address: { type: string }
+        label: { type: [string, 'null'] }
+        pct: { type: number }
+        amount: { type: number }
+        valueUsd: { type: number }
+
+    Pool:
+      type: object
+      properties:
+        address: { type: string }
+        dex: { type: string }
+        quoteToken: { type: string }
+        liquidityUsd: { type: number }
+        volume24h: { type: number }
+        isPrimary: { type: boolean }
+
+    TraderRow:
+      type: object
+      properties:
+        rank: { type: integer }
+        address: { type: string }
+        label: { type: [string, 'null'] }
+        pnlUsd: { type: number }
+        roiPct: { type: number }
+        winRate: { type: number }
+        volumeUsd: { type: number }
+        trades: { type: integer }
+        lastActiveMin: { type: number }
+
+    WalletSummary:
+      type: object
+      properties:
+        address: { type: string }
+        labels: { type: array, items: { type: string } }
+        netWorthUsd: { type: number }
+        realizedPnlUsd: { type: number }
+        unrealizedPnlUsd: { type: number }
+        winRate: { type: number }
+        trades30d: { type: integer }
+
+    Position:
+      type: object
+      properties:
+        chain: { type: string }
+        token: { type: string }
+        symbol: { type: string }
+        balance: { type: number }
+        valueUsd: { type: number }
+        avgCostUsd: { type: number }
+        realizedPnlUsd: { type: number }
+        unrealizedPnlUsd: { type: number }
+
+    PerpsBucket:
+      type: object
+      properties:
+        range: { type: string }
+        group: { type: string }
+        wallets: { type: integer }
+        inPositions: { type: integer }
+        long: { type: number }
+        short: { type: number }
+        itm: { type: number }
+        underwater: { type: number }
+        leverage: { type: number }
+
+    Article:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        excerpt: { type: string }
+        bodyMd: { type: string, description: Hanya di endpoint detail }
+        category: { type: string, enum: [blog, flagship-reports, insight-articles] }
+        tags: { type: array, items: { type: string } }
+        coverUrl: { type: [string, 'null'] }
+        pdfUrl: { type: [string, 'null'] }
+        date: { type: string, format: date }
+        readMin: { type: integer }
+        featured: { type: boolean }
+
+    Me:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: [string, 'null'] }
+        email: { type: [string, 'null'] }
+        role: { type: string, enum: [user, pro, peak, admin] }
+        wallets: { type: array, items: { type: object, properties: { chainKind: { type: string }, address: { type: string } } } }
+        preferences: { type: object }
+
+    WatchlistItem:
+      type: object
+      required: [kind, chain, address]
+      properties:
+        kind: { type: string, enum: [token, wallet] }
+        chain: { type: string }
+        address: { type: string }
+        note: { type: string }
+
+    AlertRule:
+      type: object
+      required: [kind, chain, target, params]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        kind: { type: string, enum: [price_above, price_below, pct_change, volume_spike, wallet_activity, new_listing] }
+        chain: { type: string }
+        target: { type: string }
+        params: { type: object }
+        channels: { type: array, items: { type: string, enum: [web, telegram, email] } }
+        cooldownSec: { type: integer, minimum: 60 }
+        active: { type: boolean }
+
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        prefix: { type: string }
+        plan: { type: string }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: [string, 'null'], format: date-time }

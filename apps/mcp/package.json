@@ -1,0 +1,50 @@
+{
+  "name": "anthrope-agent-mcp",
+  "version": "0.1.0",
+  "description": "Anthrope Agent MCP server: read-only onchain market data tools for Claude and other MCP clients",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "crypto",
+    "onchain",
+    "solana",
+    "ethereum",
+    "dex"
+  ],
+  "homepage": "https://github.com/AnthropeAgent/anthrope-agent/tree/main/apps/mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnthropeAgent/anthrope-agent.git",
+    "directory": "apps/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/AnthropeAgent/anthrope-agent/issues"
+  },
+  "type": "module",
+  "bin": {
+    "anthrope-agent-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "tsx": "4.19.2"
+  }
+}

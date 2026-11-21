@@ -1,0 +1,197 @@
+[
+ {
+  "chainId": "base",
+  "dexId": "uniswap",
+  "url": "https://dexscreener.com/base/0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+  "pairAddress": "0xb4CB800910B228ED3d0834cF79D697127BBB00e5",
+  "labels": [
+   "v3"
+  ],
+  "baseToken": {
+   "address": "0x4200000000000000000000000000000000000006",
+   "name": "Wrapped Ether",
+   "symbol": "WETH"
+  },
+  "quoteToken": {
+   "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+   "name": "USD Coin",
+   "symbol": "USDC"
+  },
+  "priceNative": "1634.7646",
+  "priceUsd": "1634.76",
+  "txns": {
+   "m5": {
+    "buys": 417,
+    "sells": 444
+   },
+   "h1": {
+    "buys": 6712,
+    "sells": 8666
+   },
+   "h6": {
+    "buys": 27370,
+    "sells": 32838
+   },
+   "h24": {
+    "buys": 89345,
+    "sells": 92045
+   }
+  },
+  "volume": {
+   "h24": 34401299.33,
+   "h6": 11786105.55,
+   "h1": 3226663.15,
+   "m5": 175598.06
+  },
+  "priceChange": {
+   "m5": 0.09,
+   "h1": 4.99,
+   "h6": 0.94,
+   "h24": -6.36
+  },
+  "liquidity": {
+   "base": 220.8822,
+   "quote": 179627,
+   "usd": 540718.42
+  },
+  "fdv": 495586085,
+  "marketCap": 495586085,
+  "pairCreatedAt": 1694885507000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/e7ad3f643e8706e541538413f2afad46f18cafb430606caae3c70c0f7425c16e?width=800&height=800&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/base/0x4200000000000000000000000000000000000006?timestamp=1795244700000",
+   "websites": [],
+   "socials": []
+  }
+ },
+ {
+  "chainId": "base",
+  "dexId": "uniswap",
+  "url": "https://dexscreener.com/base/0xd0b53d9277642d899df5c87a3966a349a798f224",
+  "pairAddress": "0xd0b53D9277642d899DF5C87A3966A349A798F224",
+  "labels": [
+   "v3"
+  ],
+  "baseToken": {
+   "address": "0x4200000000000000000000000000000000000006",
+   "name": "Wrapped Ether",
+   "symbol": "WETH"
+  },
+  "quoteToken": {
+   "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+   "name": "USD Coin",
+   "symbol": "USDC"
+  },
+  "priceNative": "1635.2706",
+  "priceUsd": "1635.27",
+  "txns": {
+   "m5": {
+    "buys": 117,
+    "sells": 166
+   },
+   "h1": {
+    "buys": 1678,
+    "sells": 2329
+   },
+   "h6": {
+    "buys": 8119,
+    "sells": 7140
+   },
+   "h24": {
+    "buys": 28535,
+    "sells": 23894
+   }
+  },
+  "volume": {
+   "h24": 61177245.04,
+   "h6": 16910468.23,
+   "h1": 5327810.14,
+   "m5": 381569.42
+  },
+  "priceChange": {
+   "m5": 0.09,
+   "h1": 4.98,
+   "h6": 1,
+   "h24": -6.34
+  },
+  "liquidity": {
+   "base": 5227.1839,
+   "quote": 1203949,
+   "usd": 9751810.22
+  },
+  "fdv": 495739498,
+  "marketCap": 495739498,
+  "pairCreatedAt": 1694030161000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/e7ad3f643e8706e541538413f2afad46f18cafb430606caae3c70c0f7425c16e?width=800&height=800&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/base/0x4200000000000000000000000000000000000006?timestamp=1795244700000",
+   "websites": [],
+   "socials": []
+  }
+ },
+ {
+  "chainId": "base",
+  "dexId": "uniswap",
+  "url": "https://dexscreener.com/base/0x6c561b446416e1a00e8e93e221854d6ea4171372",
+  "pairAddress": "0x6c561B446416E1A00E8E93E221854d6eA4171372",
+  "labels": [
+   "v3"
+  ],
+  "baseToken": {
+   "address": "0x4200000000000000000000000000000000000006",
+   "name": "Wrapped Ether",
+   "symbol": "WETH"
+  },
+  "quoteToken": {
+   "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+   "name": "USD Coin",
+   "symbol": "USDC"
+  },
+  "priceNative": "1636.5201",
+  "priceUsd": "1636.52",
+  "txns": {
+   "m5": {
+    "buys": 33,
+    "sells": 7
+   },
+   "h1": {
+    "buys": 404,
+    "sells": 246
+   },
+   "h6": {
+    "buys": 1870,
+    "sells": 3063
+   },
+   "h24": {
+    "buys": 6103,
+    "sells": 7338
+   }
+  },
+  "volume": {
+   "h24": 168003583.07,
+   "h6": 79192376.72,
+   "h1": 26797844.79,
+   "m5": 926966.04
+  },
+  "priceChange": {
+   "m5": 0.33,
+   "h1": 4.83,
+   "h6": 1.06,
+   "h24": -6.17
+  },
+  "liquidity": {
+   "base": 33324,
+   "quote": 23512638,
+   "usd": 78048357.14
+  },
+  "fdv": 496118282,
+  "marketCap": 496118282,
+  "pairCreatedAt": 1700287149000,
+  "info": {
+   "imageUrl": "https://cdn.dexscreener.com/cms/images/e7ad3f643e8706e541538413f2afad46f18cafb430606caae3c70c0f7425c16e?width=800&height=800&quality=95&format=auto",
+   "openGraph": "https://cdn.dexscreener.com/token-images/og/base/0x4200000000000000000000000000000000000006?timestamp=1795244700000",
+   "websites": [],
+   "socials": []
+  }
+ }
+]

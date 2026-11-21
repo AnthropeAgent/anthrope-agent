@@ -1,0 +1,29 @@
+{
+  "name": "onchain-terminal",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api,workers -c yellow,cyan,magenta \"npm:dev -w @ot/web\" \"npm:dev -w @ot/api\" \"npm:dev -w @ot/workers\"",
+    "dev:web": "npm run dev -w @ot/web",
+    "dev:api": "npm run dev -w @ot/api",
+    "dev:workers": "npm run dev -w @ot/workers",
+    "build": "npm run build -w @ot/web && npm run build -w @ot/api",
+    "lint": "npm run lint -w @ot/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:local": "npm start -w @ot/devdb",
+    "db:migrate": "npm run migrate -w @ot/db",
+    "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.2",
+    "typescript": "5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

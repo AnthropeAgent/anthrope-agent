@@ -1,0 +1,225 @@
+{
+ "data": [
+  {
+   "id": "solana_DjbLtX1HRGZZrJgJ7CwTX6SN3D7tBLiytkGwomBUwTVB",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "0.00105172417185873822606299609073831029781888665033880974220561233",
+    "base_token_price_native_currency": "0.0000155294908995396",
+    "quote_token_price_usd": "68.150595265419861537829318083800993790782997013",
+    "quote_token_price_native_currency": "1.0",
+    "base_token_price_quote_token": "0.0000155294909",
+    "quote_token_price_base_token": "64393.6112567378",
+    "address": "DjbLtX1HRGZZrJgJ7CwTX6SN3D7tBLiytkGwomBUwTVB",
+    "name": "FIONA / SOL",
+    "pool_created_at": "2026-11-19T20:53:29Z",
+    "fdv_usd": "1051724.172",
+    "market_cap_usd": null,
+    "price_change_percentage": {
+     "m5": "2.255",
+     "m15": "-1.679",
+     "m30": "-1.709",
+     "h1": "12.774",
+     "h6": "-18.715",
+     "h24": "-39.656"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 38,
+      "sells": 46,
+      "buyers": 28,
+      "sellers": 39,
+      "unique_traders": 64
+     },
+     "m15": {
+      "buys": 146,
+      "sells": 143,
+      "buyers": 86,
+      "sellers": 99,
+      "unique_traders": 167
+     },
+     "m30": {
+      "buys": 340,
+      "sells": 318,
+      "buyers": 197,
+      "sellers": 195,
+      "unique_traders": 340
+     },
+     "h1": {
+      "buys": 729,
+      "sells": 660,
+      "buyers": 375,
+      "sellers": 409,
+      "unique_traders": 655
+     },
+     "h6": {
+      "buys": 7455,
+      "sells": 6117,
+      "buyers": 2254,
+      "sellers": 2355,
+      "unique_traders": 3322
+     },
+     "h24": {
+      "buys": 41343,
+      "sells": 31965,
+      "buyers": 9986,
+      "sellers": 9553,
+      "unique_traders": 13088
+     }
+    },
+    "volume_usd": {
+     "m5": "7440.067694734",
+     "m15": "18323.4933374751",
+     "m30": "41173.0203461547",
+     "h1": "92805.1134232108",
+     "h6": "968840.556024487",
+     "h24": "5109379.18940416"
+    },
+    "reserve_in_usd": "95815.2196"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "solana_B34nXKzCgsJb9ChLuSHPRpXLE3WFSWyeT8Cqkzzmpump",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "solana_So11111111111111111111111111111111111111112",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "pumpswap",
+      "type": "dex"
+     }
+    }
+   }
+  },
+  {
+   "id": "solana_DjbLtX1HRGZZrJgJ7CwTX6SN3D7tBLiytkGwomBUwTVB_x",
+   "type": "pool",
+   "attributes": {
+    "base_token_price_usd": "0.00105172417185873822606299609073831029781888665033880974220561233",
+    "base_token_price_native_currency": "0.0000155294908995396",
+    "quote_token_price_usd": "68.150595265419861537829318083800993790782997013",
+    "quote_token_price_native_currency": "1.0",
+    "base_token_price_quote_token": "0.0000155294909",
+    "quote_token_price_base_token": "64393.6112567378",
+    "address": "DjbLtX1HRGZZrJgJ7CwTX6SN3D7tBLiytkGwomBUwTVB",
+    "name": "EVIL / SOL",
+    "pool_created_at": "2026-11-19T20:53:29Z",
+    "fdv_usd": "1051724.172",
+    "market_cap_usd": null,
+    "price_change_percentage": {
+     "m5": "2.255",
+     "m15": "-1.679",
+     "m30": "-1.709",
+     "h1": "12.774",
+     "h6": "-18.715",
+     "h24": "-39.656"
+    },
+    "transactions": {
+     "m5": {
+      "buys": 38,
+      "sells": 46,
+      "buyers": 28,
+      "sellers": 39,
+      "unique_traders": 64
+     },
+     "m15": {
+      "buys": 146,
+      "sells": 143,
+      "buyers": 86,
+      "sellers": 99,
+      "unique_traders": 167
+     },
+     "m30": {
+      "buys": 340,
+      "sells": 318,
+      "buyers": 197,
+      "sellers": 195,
+      "unique_traders": 340
+     },
+     "h1": {
+      "buys": 729,
+      "sells": 660,
+      "buyers": 375,
+      "sellers": 409,
+      "unique_traders": 655
+     },
+     "h6": {
+      "buys": 7455,
+      "sells": 6117,
+      "buyers": 2254,
+      "sellers": 2355,
+      "unique_traders": 3322
+     },
+     "h24": {
+      "buys": 41343,
+      "sells": 31965,
+      "buyers": 9986,
+      "sellers": 9553,
+      "unique_traders": 13088
+     }
+    },
+    "volume_usd": {
+     "m5": "7440.067694734",
+     "m15": "18323.4933374751",
+     "m30": "41173.0203461547",
+     "h1": "92805.1134232108",
+     "h6": "968840.556024487",
+     "h24": "5109379.18940416"
+    },
+    "reserve_in_usd": "95815.2196"
+   },
+   "relationships": {
+    "base_token": {
+     "data": {
+      "id": "solana_EvilMint1111111111111111111111111111111",
+      "type": "token"
+     }
+    },
+    "quote_token": {
+     "data": {
+      "id": "solana_So11111111111111111111111111111111111111112",
+      "type": "token"
+     }
+    },
+    "dex": {
+     "data": {
+      "id": "pumpswap",
+      "type": "dex"
+     }
+    }
+   }
+  }
+ ],
+ "included": [
+  {
+   "id": "solana_B34nXKzCgsJb9ChLuSHPRpXLE3WFSWyeT8Cqkzzmpump",
+   "type": "token",
+   "attributes": {
+    "address": "B34nXKzCgsJb9ChLuSHPRpXLE3WFSWyeT8Cqkzzmpump",
+    "name": "Fiona the Hippo",
+    "symbol": "FIONA",
+    "decimals": 6,
+    "image_url": "https://assets.geckoterminal.com/1sopyh9vztlbskjzbj7zl8gr35sw",
+    "coingecko_coin_id": null
+   }
+  },
+  {
+   "id": "solana_EvilMint1111111111111111111111111111111",
+   "type": "token",
+   "attributes": {
+    "address": "EvilMint1111111111111111111111111111111",
+    "name": "<script>x</script>‮LIVE",
+    "symbol": "EV​IL\u0007",
+    "decimals": 9,
+    "image_url": "javascript:alert(1)"
+   }
+  }
+ ]
+}

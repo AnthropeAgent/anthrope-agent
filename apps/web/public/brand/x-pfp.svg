@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+<defs>
+  <linearGradient id="mk" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#fff6e3"/>
+    <stop offset="0.5" stop-color="#efe4d0"/>
+    <stop offset="1" stop-color="#d9b56f"/>
+  </linearGradient>
+  <radialGradient id="bgg" cx="0.5" cy="0.45" r="0.65">
+    <stop offset="0" stop-color="#2e2217"/><stop offset="1" stop-color="#0f0c09"/>
+  </radialGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#d9b56f" stop-opacity="0.22"/><stop offset="1" stop-color="#d9b56f" stop-opacity="0"/>
+  </radialGradient></defs>
+<rect width="400" height="400" fill="url(#bgg)"/>
+<circle cx="200" cy="200" r="170" fill="url(#glow)"/>
+
+  <g fill="url(#mk)"><polygon points="201.60,153.01 202.62,95.45 216.97,71.11 224.53,98.33 210.62,154.19"/><polygon points="224.88,160.10 245.01,126.39 263.31,117.49 259.45,137.47 232.10,165.64"/><polygon points="241.50,177.89 291.85,149.99 320.10,150.25 300.31,170.41 244.98,186.29"/><polygon points="246.99,201.60 286.25,202.18 303.11,213.57 283.88,220.22 245.81,210.62"/><polygon points="239.90,224.88 289.24,254.54 303.14,279.14 275.78,272.08 234.36,232.10"/><polygon points="222.11,241.50 241.24,275.79 239.80,296.08 224.43,282.75 213.71,244.98"/><polygon points="198.40,246.99 197.38,304.55 183.03,328.89 175.47,301.67 189.38,245.81"/><polygon points="175.12,239.90 154.99,273.61 136.69,282.51 140.55,262.53 167.90,234.36"/><polygon points="158.50,222.11 108.15,250.01 79.90,249.75 99.69,229.59 155.02,213.71"/><polygon points="153.01,198.40 113.75,197.82 96.89,186.43 116.12,179.78 154.19,189.38"/><polygon points="160.10,175.12 110.76,145.46 96.86,120.86 124.22,127.92 165.64,167.90"/><polygon points="177.89,158.50 158.76,124.21 160.20,103.92 175.57,117.25 186.29,155.02"/></g>
+  <circle cx="200" cy="200" r="32.5" fill="none" stroke="url(#mk)" stroke-width="7.15"/>
+  <path d="M200 184.4 L211.232 200 L200 215.6 L188.768 200Z" fill="url(#mk)"/></svg>

@@ -1,0 +1,186 @@
+{
+ "code": 1,
+ "message": "OK",
+ "result": {
+  "0x4ed4e862860bed51a9570b96d89af5e1b0efefed": {
+   "anti_whale_modifiable": "0",
+   "buy_tax": "0",
+   "can_take_back_ownership": "0",
+   "cannot_buy": "0",
+   "cannot_sell_all": "0",
+   "creator_address": "0x3C12B77aE8B7DD1FEB63D1D6a2A819AcdA0a41d2",
+   "creator_balance": "0",
+   "creator_percent": "0.000000",
+   "dex": [
+    {
+     "liquidity_type": "UniV3",
+     "name": "UniswapV3",
+     "liquidity": "149879.753555685162551370450000000000",
+     "pool_fee": "0.003",
+     "pair": "0xc9034c3e7f58003e6ae0c8438e7c8f4598d5acaa"
+    },
+    {
+     "liquidity_type": "UniV3",
+     "name": "UniswapV3",
+     "liquidity": "289.303245540938751797760000000000",
+     "pool_fee": "0.01",
+     "pair": "0x0ca6485b7e9cf814a3fd09d81672b07323535b64"
+    }
+   ],
+   "external_call": "0",
+   "hidden_owner": "0",
+   "holder_count": "1182913",
+   "holders": [
+    {
+     "address": "0x06a19654e0872ba71c2261ea691ecf8a0c677156",
+     "tag": "",
+     "is_contract": 1,
+     "balance": "8655197462.148796301086054099",
+     "percent": "0.241628254416602262",
+     "is_locked": 0
+    },
+    {
+     "address": "0x82d4cd9bf16017fd518511d8bbe6d0493af31a10",
+     "tag": "",
+     "is_contract": 0,
+     "balance": "2065036946.670724915616294883",
+     "percent": "0.057649900526470431",
+     "is_locked": 0
+    },
+    {
+     "address": "0x9773c9e7d048ae91a4fd9a48cd0b984e31fa418c",
+     "tag": "",
+     "is_contract": 0,
+     "balance": "1908210966.989284933307315429",
+     "percent": "0.053271769596088149",
+     "is_locked": 0
+    },
+    {
+     "address": "0xefef4558802bf373ce3307189c79a9cab0a4cb9c",
+     "tag": "",
+     "is_contract": 1,
+     "balance": "1858084939.615918399275117762",
+     "percent": "0.051872394879562802",
+     "is_locked": 0
+    },
+    {
+     "address": "0x7d00d30269fc62ab5fab54418feedbdc71fdb25f",
+     "tag": "",
+     "is_contract": 1,
+     "balance": "1848296798",
+     "percent": "0.051599138078319391",
+     "is_locked": 0
+    },
+    {
+     "address": "0x4cc69ff3264e61d5d5e8f368331320c66dad2714",
+     "tag": "",
+     "is_contract": 0,
+     "balance": "1725081559.452058179479322015",
+     "percent": "0.048159322506454557",
+     "is_locked": 0
+    },
+    {
+     "address": "0x13454580bd3300075eb4b2470a107a5cf4e6af35",
+     "tag": "",
+     "is_contract": 0,
+     "balance": "1467257237.7048428659201995",
+     "percent": "0.040961607944497280",
+     "is_locked": 0
+    },
+    {
+     "address": "0x17891b029eaead89a82bde0f398f87f5def4a1dd",
+     "tag": "",
+     "is_contract": 1,
+     "balance": "1196329091",
+     "percent": "0.033398072225421517",
+     "is_locked": 0
+    },
+    {
+     "address": "0x21bb2a7e0e26449e60e6fb994cd435b11bfe1a1a",
+     "tag": "",
+     "is_contract": 1,
+     "balance": "971682908.386494070268899039",
+     "percent": "0.027126596016630484",
+     "is_locked": 0
+    },
+    {
+     "address": "0xbaed383ede0e5d9d72430661f3285daa77e9439f",
+     "tag": "",
+     "is_contract": 0,
+     "balance": "809367068.354977536492507417",
+     "percent": "0.022595203952786946",
+     "is_locked": 0
+    }
+   ],
+   "honeypot_with_same_creator": "0",
+   "is_anti_whale": "0",
+   "is_blacklisted": "0",
+   "is_honeypot": "0",
+   "is_in_cex": {
+    "listed": "1",
+    "cex_list": [
+     "Coinbase"
+    ]
+   },
+   "is_in_dex": "1",
+   "is_mintable": "1",
+   "is_open_source": "1",
+   "is_proxy": "0",
+   "is_whitelisted": "0",
+   "lp_holder_count": "182",
+   "lp_holders": [
+    {
+     "address": "0x66bdc08a0db3a83d374670a57aa8ecd5b51b55e5",
+     "tag": "",
+     "value": "77331.2654573867631025255",
+     "is_contract": 0,
+     "balance": "74109.414622692136909879",
+     "percent": "0.525230020991815542",
+     "is_locked": 0
+    },
+    {
+     "address": "0x2448e6487c3603860cf48f0a82f8ab944b761e9b",
+     "tag": "",
+     "value": "54378.7559317554177798993",
+     "is_contract": 0,
+     "balance": "52113.175003367206096175",
+     "percent": "0.369337743933382143",
+     "is_locked": 0
+    },
+    {
+     "address": "0x2a7f7ca1e1d679fad415454b7eda800c021a8be7",
+     "tag": "",
+     "value": "2515.1022350087372878732",
+     "is_contract": 1,
+     "balance": "8271.872167101309858048",
+     "percent": "0.017082446431943359",
+     "is_locked": 0
+    },
+    {
+     "address": "0x7d27cdfbfcc878f7e7349e216d44204bfd2afd55",
+     "tag": "",
+     "value": "2301.5639484333669333798",
+     "is_contract": 1,
+     "balance": "38572.399383117973496821",
+     "percent": "0.015632105252639345",
+     "is_locked": 0
+    }
+   ],
+   "lp_total_supply": "601291.7401747301",
+   "owner_address": "0x704ec5c12ca20a293c2c0b72b22619a4231f3c0d",
+   "owner_balance": "190447085.38183916",
+   "owner_change_balance": "0",
+   "owner_percent": "0.005317",
+   "personal_slippage_modifiable": "0",
+   "selfdestruct": "0",
+   "sell_tax": "0",
+   "slippage_modifiable": "0",
+   "token_name": "Degen",
+   "token_symbol": "DEGEN",
+   "total_supply": "35820303726.674185780132319738",
+   "trading_cooldown": "0",
+   "transfer_pausable": "0",
+   "transfer_tax": "0"
+  }
+ }
+}

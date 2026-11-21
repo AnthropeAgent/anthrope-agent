@@ -1,0 +1,23 @@
+{
+  "name": "@ot/search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Search token: Meilisearch bila MEILI_URL diisi, fallback Postgres pg_trgm. Ranking akhir sama untuk keduanya.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ot/db": "*",
+    "@ot/types": "*"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/pg": "8.11.10",
+    "tsx": "4.19.2"
+  }
+}

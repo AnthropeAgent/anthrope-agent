@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# next.js / build
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# env (hanya .env.example yang di-commit)
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.pem
+coverage/
+npm-debug.log*
+
+# vercel
+.vercel
+
+# database lokal tanpa Docker (packages/devdb)
+.devdb/
+
+# internal, not published (stay on local disk)
+.claude/
+docs/ANALISIS-BIRDEYE.md
+docs/PROMPT-PROJECT-WEB3.md
+*.log

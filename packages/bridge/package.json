@@ -1,0 +1,23 @@
+{
+  "name": "@ot/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Provider bridge Mode A: adapter GeckoTerminal + DexScreener, normalisasi ke Token, store Redis.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ot/db": "*",
+    "@ot/types": "*",
+    "ioredis": "5.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "tsx": "4.19.2"
+  }
+}

@@ -1,0 +1,71 @@
+# Layanan data untuk development lokal.
+# Password di sini HANYA untuk lokal (port hanya dibuka ke 127.0.0.1).
+# Produksi memakai database terkelola dengan secret dari secret manager.
+name: onchain-terminal
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ot_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-ot}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pg-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-ot}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-ot_local_only}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-ot}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports: ["127.0.0.1:8123:8123"]
+    volumes: [ch-data:/var/lib/clickhouse]
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8123/ping"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # Dipakai mulai langkah 3 (ingestion stream). Boleh dimatikan sebelum itu.
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda start
+      - --mode dev-container
+      - --smp 1
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports: ["127.0.0.1:19092:19092"]
+    profiles: [stream]
+
+  # Dipakai mulai langkah 4 (search).
+  meilisearch:
+    image: getmeili/meilisearch:v1.11.3
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-ot_local_only_master_key}
+      MEILI_ENV: development
+    ports: ["127.0.0.1:7700:7700"]
+    volumes: [meili-data:/meili_data]
+    profiles: [search]
+
+volumes:
+  pg-data:
+  ch-data:
+  redis-data:
+  meili-data:

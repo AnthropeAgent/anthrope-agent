@@ -1,0 +1,130 @@
+{
+ "data": [
+  {
+   "id": "base_60299134_0x16ae799479178f26e42ee57aa915531c004e9309f06b20ac0ed7d62577ff2656_30_1795250206",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299134,
+    "block_timestamp": "2026-11-21T08:36:42Z",
+    "tx_hash": "0x16ae799479178f26e42ee57aa915531c004e9309f06b20ac0ed7d62577ff2656",
+    "tx_from_address": "0x70d0e06f409056bbd897621a4ba143c4742cce54",
+    "kind": "buy",
+    "from_token_address": "0x4200000000000000000000000000000000000006",
+    "to_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "from_token_amount": "0.2310020026586",
+    "to_token_amount": "373.374751",
+    "price_from_in_usd": "1617.47",
+    "price_to_in_usd": "1.00070722039854",
+    "price_from_in_currency_token": "1.0",
+    "price_to_in_currency_token": "0.000618686727048129",
+    "volume_in_usd": "373.638809240206",
+    "is_anomalous": false
+   }
+  },
+  {
+   "id": "base_60299133_0xd588bbe58d00f4b15ae0fde0841b308f3347bfaf2bb5701bd84e5ea4058fbcd4_5_1795250206",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299133,
+    "block_timestamp": "2026-11-21T08:36:42Z",
+    "tx_hash": "0xd588bbe58d00f4b15ae0fde0841b308f3347bfaf2bb5701bd84e5ea4058fbcd4",
+    "tx_from_address": "0xe4468dd637af826e353d7afa6ff21d7d67a21f0e",
+    "kind": "buy",
+    "from_token_address": "0x4200000000000000000000000000000000000006",
+    "to_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "from_token_amount": "0.450476946214106",
+    "to_token_amount": "728.074237",
+    "price_from_in_usd": "1617.47",
+    "price_to_in_usd": "1.00076737942992",
+    "price_from_in_currency_token": "1.0",
+    "price_to_in_currency_token": "0.000618723920338505",
+    "volume_in_usd": "728.63294619293",
+    "is_anomalous": false
+   }
+  },
+  {
+   "id": "base_60299065_0x3c670ac02305dfcc718738f3557e42073f79d62d6059f9e4d28019fa20d20e22_151_1795250200",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299065,
+    "block_timestamp": "2026-11-21T08:36:28Z",
+    "tx_hash": "0x3c670ac02305dfcc718738f3557e42073f79d62d6059f9e4d28019fa20d20e22",
+    "tx_from_address": "0xe3ca18241ed0f841418ef2763436fd6560607f5c",
+    "kind": "sell",
+    "from_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "to_token_address": "0x4200000000000000000000000000000000000006",
+    "from_token_amount": "73.789809",
+    "to_token_amount": "0.0457022400591356",
+    "price_from_in_usd": "1.0017914835428",
+    "price_to_in_usd": "1617.47",
+    "price_from_in_currency_token": "0.00061935707218236",
+    "price_to_in_currency_token": "1.0",
+    "volume_in_usd": "73.9220022284501",
+    "is_anomalous": false
+   }
+  },
+  {
+   "id": "base_60299058_0x59f9bf131f3ab2d172df108a0fc6eb468730a86772c728b73a0ba61eca16b4e7_27_1795250197",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299058,
+    "block_timestamp": "2026-11-21T08:36:27Z",
+    "tx_hash": "0x59f9bf131f3ab2d172df108a0fc6eb468730a86772c728b73a0ba61eca16b4e7",
+    "tx_from_address": "0xbb1a1a2773a799d83078ae4d59d9f4b2b6ac50ff",
+    "kind": "sell",
+    "from_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "to_token_address": "0x4200000000000000000000000000000000000006",
+    "from_token_amount": "7818.464405",
+    "to_token_amount": "4.84106411406006",
+    "price_from_in_usd": "1.00151072729335",
+    "price_to_in_usd": "1617.47",
+    "price_from_in_currency_token": "0.000619183494774772",
+    "price_to_in_currency_token": "1.0",
+    "volume_in_usd": "7830.27597256872",
+    "is_anomalous": false
+   }
+  },
+  {
+   "id": "base_60299058_0x59f9bf131f3ab2d172df108a0fc6eb468730a86772c728b73a0ba61eca16b4e7_27_1795250197x",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299058,
+    "block_timestamp": "2026-11-21T08:36:27Z",
+    "tx_hash": "0x59f9bf131f3ab2d172df108a0fc6eb468730a86772c728b73a0ba61eca16b4e7",
+    "tx_from_address": "0xbb1a1a2773a799d83078ae4d59d9f4b2b6ac50ff",
+    "kind": "sell",
+    "from_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "to_token_address": "0x4200000000000000000000000000000000000006",
+    "from_token_amount": "7818.464405",
+    "to_token_amount": "4.84106411406006",
+    "price_from_in_usd": "1.00151072729335",
+    "price_to_in_usd": "1617.47",
+    "price_from_in_currency_token": "0.000619183494774772",
+    "price_to_in_currency_token": "1.0",
+    "volume_in_usd": "7830.27597256872",
+    "is_anomalous": true
+   }
+  },
+  {
+   "id": "base_60299134_0x16ae799479178f26e42ee57aa915531c004e9309f06b20ac0ed7d62577ff2656_30_1795250206y",
+   "type": "trade",
+   "attributes": {
+    "block_number": 60299134,
+    "block_timestamp": "2026-11-21T08:36:42Z",
+    "tx_hash": "0x16ae799479178f26e42ee57aa915531c004e9309f06b20ac0ed7d62577ff2656",
+    "tx_from_address": "<script>",
+    "kind": "buy",
+    "from_token_address": "0x4200000000000000000000000000000000000006",
+    "to_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "from_token_amount": "0.2310020026586",
+    "to_token_amount": "373.374751",
+    "price_from_in_usd": "1617.47",
+    "price_to_in_usd": "1.00070722039854",
+    "price_from_in_currency_token": "1.0",
+    "price_to_in_currency_token": "0.000618686727048129",
+    "volume_in_usd": "373.638809240206",
+    "is_anomalous": false
+   }
+  }
+ ]
+}

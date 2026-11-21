@@ -1,0 +1,24 @@
+# Reverse proxy produksi: SATU domain untuk semua produk.
+# Ganti {$APP_DOMAIN} lewat env, contoh: APP_DOMAIN=anthropeagent.xyz
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# REST API dan WebSocket ke apps/api
+	handle /api/v1/* {
+		reverse_proxy {$API_UPSTREAM:api:4000}
+	}
+	handle /ws {
+		reverse_proxy {$WS_UPSTREAM:api:4000}
+	}
+
+	# Semua halaman (hub, terminal, peak, research, embed) ke apps/web
+	handle {
+		reverse_proxy {$WEB_UPSTREAM:web:3000}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
